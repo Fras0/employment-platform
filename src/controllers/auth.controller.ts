@@ -9,6 +9,7 @@ import { User } from "../models/user";
 import { createSendAccessRefresh } from "../utils/authentication";
 import { Employee } from "../models/employee";
 import { Employer } from "../models/employer";
+import { Language } from "../models/programming-languages";
 
 const jwt = require("jsonwebtoken");
 
@@ -45,11 +46,33 @@ export const signUp = asyncHandler(
       role,
     });
 
-    await userRepo.save(newUser);
-
     if (role === "employee") {
-      const { nationalId, name, city, bio, experienceLevel } = req.body;
+      const { nationalId, name, city, bio, experienceLevel, languageNames } =
+        req.body;
 
+      if (
+        !languageNames ||
+        !Array.isArray(languageNames) ||
+        languageNames.length === 0
+      ) {
+        return next(
+          new AppError(`Please specify your programming languages`, 400)
+        );
+      }
+      const languages = await Language.find({
+        where: languageNames.map((name: string) => ({ name })),
+      });
+
+      if (languages.length !== languageNames.length) {
+        return next(
+          new AppError(
+            `One or more of languages is not found, please specify real programming languages`,
+            400
+          )
+        );
+      }
+
+      await userRepo.save(newUser);
       const employeeRepo = AppDataSource.getRepository(Employee);
 
       const employee = employeeRepo.create({
@@ -59,12 +82,13 @@ export const signUp = asyncHandler(
         bio,
         experienceLevel,
         user: newUser,
+        languages,
       });
-
       await employeeRepo.save(employee);
     } else if (role === "employer") {
       const { name, companyName } = req.body;
 
+      await userRepo.save(newUser);
       const employerRepo = AppDataSource.getRepository(Employer);
 
       const employer = employerRepo.create({
@@ -72,7 +96,6 @@ export const signUp = asyncHandler(
         companyName,
         user: newUser,
       });
-
       await employerRepo.save(employer);
     }
 

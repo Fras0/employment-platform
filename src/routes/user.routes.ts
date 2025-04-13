@@ -7,7 +7,11 @@ import {
   refreshToken,
   login,
 } from "../controllers/auth.controller";
-import { getMe, getUser } from "../controllers/user.controller";
+import {
+  getAllCandidates,
+  getMe,
+  getUser,
+} from "../controllers/user.controller";
 import { protect } from "../middleware/protect";
 import { restrictTo } from "../middleware/restrictTo";
 
@@ -17,6 +21,8 @@ router.route("/logout").post(logout);
 router.route("/refreshToken").post(refreshToken);
 
 router.use(protect);
+
+router.route("/candidates").get(getAllCandidates);
 
 router.route("/me").get(getMe, getUser);
 router.route("/:id").get(getUser);

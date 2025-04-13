@@ -4,6 +4,7 @@ import asyncHandler from "../utils/async-handler";
 
 import { AppDataSource } from "../config/data-source";
 import { User } from "../models/user";
+import { Employee } from "../models/employee";
 
 export const getMe = (req: Request, res: Response, next: NextFunction) => {
   req.params.id = String(req.user?.id);
@@ -17,7 +18,9 @@ export const getUser = asyncHandler(
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo
       .createQueryBuilder("users")
-      .where("id= :userId", { userId })
+      .leftJoinAndSelect("users.employee", "employee")
+      .leftJoinAndSelect("users.employer", "employer")
+      .where("users.id= :userId", { userId })
       .getOne();
 
     if (!user) {
@@ -27,6 +30,47 @@ export const getUser = asyncHandler(
     res.status(200).json({
       status: "success",
       data: user,
+    });
+  }
+);
+
+export const getAllCandidates = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { experienceLevel, city, languageNames } = req.query;
+
+    const query = AppDataSource.getRepository(Employee)
+      .createQueryBuilder("employees")
+      .leftJoinAndSelect("employees.languages", "language");
+
+    if (experienceLevel) {
+      query.andWhere("employees.experienceLevel = :experienceLevel", {
+        experienceLevel,
+      });
+    }
+
+    if (city) {
+      query.andWhere("employees.city = :city", {
+        city,
+      });
+    }
+
+    if (languageNames) {
+      const names = Array.isArray(languageNames)
+        ? languageNames
+        : (languageNames as string).split(",");
+      query.andWhere("language.name IN (:...names)", { names });
+    }
+
+    const candidates = await query.getMany();
+
+    if (!candidates) {
+      return next(new AppError("No candidates found", 404));
+    }
+
+    res.status(200).json({
+      status: "success",
+      no: candidates.length,
+      data: candidates,
     });
   }
 );

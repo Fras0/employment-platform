@@ -5,6 +5,8 @@ import { Request, Response, NextFunction } from "express";
 import { promisify } from "util";
 import asyncHandler from "../utils/async-handler";
 import { AppDataSource } from "../config/data-source";
+import { Employee } from "../models/employee";
+import { Employer } from "../models/employer";
 
 interface DecodedToken {
   id: string;
@@ -45,9 +47,27 @@ export const protect = asyncHandler(
       );
     }
 
+    let currentEmployee;
+    let currentEmployer;
+    if (currentUser.role === "employee") {
+      console.log(currentUser);
+      const employeeRepo = AppDataSource.getRepository(Employee);
+      currentEmployee = await employeeRepo
+        .createQueryBuilder("employee")
+        .where("employee.userId= :id", { id: currentUser.id })
+        .getOne();
+    } else if (currentUser.role === "employer") {
+      const employerRepo = AppDataSource.getRepository(Employer);
+      currentEmployer = await employerRepo
+        .createQueryBuilder("employer")
+        .where("employer.userId= :id", { id: currentUser.id })
+        .getOne();
+    }
+
     // Attach user to the request object for further middleware/controllers
     req.user = currentUser;
-
+    req.employer = currentEmployer;
+    req.employee = currentEmployee;
     next(); // Proceed to the next middleware/controller
   }
 );

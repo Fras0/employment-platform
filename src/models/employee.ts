@@ -1,14 +1,17 @@
 import {
   BaseEntity,
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { User } from "./user";
+import { Language } from "./programming-languages";
+import { Application } from "./application";
 
 @Entity({
   name: "EMPLOYEES",
@@ -35,4 +38,11 @@ export class Employee extends BaseEntity {
   @OneToOne(() => User, (user) => user.employee)
   @JoinColumn()
   user: User;
+
+  @OneToMany(() => Application, (application) => application.employee)
+  applications: Application[];
+
+  @ManyToMany(() => Language, (language) => language.employees, { eager: true })
+  @JoinTable()
+  languages: Language[];
 }

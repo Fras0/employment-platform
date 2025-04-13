@@ -1,14 +1,14 @@
 import {
   BaseEntity,
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { User } from "./user";
+import { Job } from "./job";
 
 @Entity({
   name: "EMPLOYERS",
@@ -26,4 +26,7 @@ export class Employer extends BaseEntity {
   @OneToOne(() => User, (user) => user.employer)
   @JoinColumn()
   user: User;
+
+  @OneToMany(() => Job, (job) => job.employer)
+  jobs: Job[];
 }

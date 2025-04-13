@@ -1,11 +1,9 @@
 import {
   BaseEntity,
   Column,
-  CreateDateColumn,
   Entity,
   OneToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from "typeorm";
 import { Employer } from "./employer";
 import { Employee } from "./employee";
