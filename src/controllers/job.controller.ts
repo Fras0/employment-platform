@@ -181,8 +181,6 @@ export const recommendJobs = asyncHandler(
       .sort((a, b) => b.score - a.score)
       .map(({ job }) => job);
 
-    res.json(recommended);
-
     res.status(200).json({
       status: "success",
       no: recommended.length,
