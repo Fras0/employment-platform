@@ -7,6 +7,7 @@ import { AppDataSource } from "../config/data-source";
 import { Job } from "../models/job";
 import { logger } from "../config/logger";
 import { Language } from "../models/programming-languages";
+import { Employee } from "../models/employee";
 
 export const addJob = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -104,7 +105,6 @@ export const getAllJobs = asyncHandler(
 export const getJob = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const jobId = req.params.id;
-
     const jobRepo = AppDataSource.getRepository(Job);
     const job = await jobRepo
       .createQueryBuilder("jobs")
@@ -119,6 +119,74 @@ export const getJob = asyncHandler(
     res.status(200).json({
       status: "success",
       data: job,
+    });
+  }
+);
+
+export const recommendJobs = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const employeeId = req.employee?.id;
+    if (!employeeId) {
+      return next(new AppError(`You are not employee`, 400));
+    }
+    const employee = await Employee.findOne({
+      where: { id: employeeId },
+      relations: ["languages"],
+    });
+
+    if (!employee) {
+      return next(new AppError(`No employee found`, 400));
+    }
+
+    const languageNames = employee.languages.map((lang) =>
+      lang.name.toLowerCase()
+    );
+    const bioKeywords =
+      employee.bio
+        ?.toLowerCase()
+        .split(/\s+/)
+        .filter((word) => word.length > 3) ?? [];
+
+    const allJobs = await Job.find({
+      relations: ["languages", "employer"],
+    });
+
+    const scoredJobs = allJobs.map((job) => {
+      let score = 0;
+
+      // Match experience
+      if (job.experienceLevel === employee.experienceLevel) score += 2;
+
+      // Match city
+      if (job.city.toLowerCase() === employee.city.toLowerCase()) score += 1;
+
+      // Match languages
+      const jobLangs = job.languages.map((l) => l.name.toLowerCase());
+      const commonLangs = jobLangs.filter((lang) =>
+        languageNames.includes(lang)
+      );
+      score += commonLangs.length;
+
+      // Match bio keywords in title/description
+      const text = `${job.title} ${job.description}`.toLowerCase();
+      const bioMatches = bioKeywords.filter((word) => text.includes(word));
+      score += bioMatches.length * 0.5;
+
+      return { job, score };
+    });
+
+    // Sort by score descending
+    const recommended = scoredJobs
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ job }) => job);
+
+    res.json(recommended);
+
+    res.status(200).json({
+      status: "success",
+      no: recommended.length,
+      data: recommended,
     });
   }
 );

@@ -6,6 +6,7 @@ import { Employee } from "../models/employee";
 import { Language } from "../models/programming-languages";
 import { Job } from "../models/job";
 import { Application } from "../models/application";
+import { ProfileView } from "../models/profile-views";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -15,7 +16,7 @@ export const AppDataSource = new DataSource({
   port: parseInt(process.env.DB_PORT || "5432"), //5432
   database: process.env.DB_NAME, // blood-bank
   ssl: false,
-  entities: [User, Employer, Employee, Language, Job, Application],
+  entities: [User, Employer, Employee, Language, Job, Application, ProfileView],
   synchronize: true,
   logging: true,
 });

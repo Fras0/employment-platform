@@ -20,7 +20,11 @@ export class Application extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: "enum", enum: ["pending", "accepted", "rejected"] })
+  @Column({
+    type: "enum",
+    enum: ["pending", "accepted", "rejected"],
+    default: "pending",
+  })
   status: "pending" | "accepted" | "rejected";
 
   @ManyToOne(() => Employee, (employee) => employee.applications)

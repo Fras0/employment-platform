@@ -88,6 +88,9 @@ export const signUp = asyncHandler(
     } else if (role === "employer") {
       const { name, companyName } = req.body;
 
+      if (!name || !companyName) {
+        return next(new AppError(`Please provide name and company name`, 400));
+      }
       await userRepo.save(newUser);
       const employerRepo = AppDataSource.getRepository(Employer);
 

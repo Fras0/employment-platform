@@ -5,6 +5,7 @@ import asyncHandler from "../utils/async-handler";
 import { AppDataSource } from "../config/data-source";
 import { User } from "../models/user";
 import { Employee } from "../models/employee";
+import { ProfileView } from "../models/profile-views";
 
 export const getMe = (req: Request, res: Response, next: NextFunction) => {
   req.params.id = String(req.user?.id);
@@ -14,6 +15,10 @@ export const getMe = (req: Request, res: Response, next: NextFunction) => {
 export const getUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.params.id;
+
+    const viewerId = req.user?.id;
+
+    const viewer = await User.findOne({ where: { id: viewerId } });
 
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo
@@ -25,6 +30,14 @@ export const getUser = asyncHandler(
 
     if (!user) {
       return next(new AppError("User not found", 404));
+    }
+
+    if (viewer) {
+      const view = ProfileView.create({
+        viewer,
+        viewed: user,
+      });
+      await view.save();
     }
 
     res.status(200).json({
