@@ -62,7 +62,13 @@ export const addJob = asyncHandler(
 
 export const getAllJobs = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { experienceLevel, city, languageNames } = req.query;
+    const {
+      experienceLevel,
+      city,
+      languageNames,
+      page = "1",
+      limit = "10",
+    } = req.query;
 
     const query = AppDataSource.getRepository(Job)
       .createQueryBuilder("jobs")
@@ -88,7 +94,12 @@ export const getAllJobs = asyncHandler(
       query.andWhere("language.name IN (:...names)", { names });
     }
 
-    const jobs = await query.getMany();
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+
+    query.skip((pageNumber - 1) * limitNumber).take(limitNumber);
+
+    const [jobs, total] = await query.getManyAndCount();
 
     if (!jobs) {
       return next(new AppError("No jobs found", 404));
@@ -97,6 +108,9 @@ export const getAllJobs = asyncHandler(
     res.status(200).json({
       status: "success",
       no: jobs.length,
+      total,
+      page: pageNumber,
+      limit: limitNumber,
       data: jobs,
     });
   }

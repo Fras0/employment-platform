@@ -82,7 +82,14 @@ export const getProfileViews = asyncHandler(
 
 export const getAllCandidates = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { experienceLevel, city, languageNames } = req.query;
+    const {
+      experienceLevel,
+      city,
+      languageNames,
+      bio,
+      page = "1",
+      limit = "10",
+    } = req.query;
 
     const query = AppDataSource.getRepository(Employee)
       .createQueryBuilder("employees")
@@ -100,14 +107,38 @@ export const getAllCandidates = asyncHandler(
       });
     }
 
+    if (bio) {
+      const terms = (bio as string)
+        .split(" ")
+        .map((term) => term.trim())
+        .filter((term) => term.length > 0);
+
+      if (terms.length > 0) {
+        const bioConditions = terms
+          .map((_, index) => `employees.bio ILIKE :bioTerm${index}`)
+          .join(" OR ");
+
+        const bioParams = terms.reduce((acc, term, index) => {
+          acc[`bioTerm${index}`] = `%${term}%`;
+          return acc;
+        }, {} as Record<string, string>);
+
+        query.andWhere(`(${bioConditions})`, bioParams);
+      }
+    }
+
     if (languageNames) {
       const names = Array.isArray(languageNames)
         ? languageNames
         : (languageNames as string).split(",");
       query.andWhere("language.name IN (:...names)", { names });
     }
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
 
-    const candidates = await query.getMany();
+    query.skip((pageNumber - 1) * limitNumber).take(limitNumber);
+
+    const [candidates, total] = await query.getManyAndCount();
 
     if (!candidates) {
       return next(new AppError("No candidates found", 404));
@@ -116,6 +147,9 @@ export const getAllCandidates = asyncHandler(
     res.status(200).json({
       status: "success",
       no: candidates.length,
+      total,
+      page: pageNumber,
+      limit: limitNumber,
       data: candidates,
     });
   }
