@@ -72,7 +72,7 @@ export const getAllJobs = asyncHandler(
 
     const query = AppDataSource.getRepository(Job)
       .createQueryBuilder("jobs")
-      .leftJoin("jobs.languages", "language");
+      .leftJoinAndSelect("jobs.languages", "language");
 
     if (experienceLevel) {
       query.andWhere("jobs.experienceLevel = :experienceLevel", {

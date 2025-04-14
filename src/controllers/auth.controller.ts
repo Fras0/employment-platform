@@ -116,6 +116,7 @@ export const login = asyncHandler(
       .createQueryBuilder("users")
       .where("email= :email", { email })
       .getOne();
+    console.log(user);
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return next(new AppError(`invalid email or password`, 403));
@@ -161,38 +162,39 @@ export const logout = asyncHandler(
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // 1) CHECK THE REQUEST COOKIES FOR REFRESH TOKEN
-    const refreshToken: string | undefined = req.cookies.refreshToken;
-    if (!refreshToken) {
-      return next(new AppError("Refresh token not found", 401));
-    }
+    // const refreshToken: string | undefined = req.cookies.refreshToken;
+    // if (!refreshToken) {
+    //   return next(new AppError("Refresh token not found", 401));
+    // }
 
-    // 2) CHECK IF THE REFRESH TOKEN IS VALID
-    let decoded: { id: string } | string;
-    try {
-      decoded = jwt.verify(
-        refreshToken,
-        process.env.JWT_SECRET_REFRESH as string
-      );
-    } catch (error) {
-      return next(new AppError("Invalid refresh token", 403));
-    }
+    // // 2) CHECK IF THE REFRESH TOKEN IS VALID
+    // let decoded: { id: string } | string;
+    // try {
+    //   decoded = jwt.verify(
+    //     refreshToken,
+    //     process.env.JWT_SECRET_REFRESH as string
+    //   );
+    // } catch (error) {
+    //   return next(new AppError("Invalid refresh token", 403));
+    // }
 
-    if (!isDecodedValid(decoded)) {
-      return next(new AppError("Invalid refresh token", 403));
-    }
+    // if (!isDecodedValid(decoded)) {
+    //   return next(new AppError("Invalid refresh token", 403));
+    // }
 
-    // 3) CHECK IF THE REFRESH TOKEN IN THE DATABASE FOR THIS USER
-    const userRepository = AppDataSource.getRepository(User);
-    const user = await userRepository
-      .createQueryBuilder("users")
-      .where("id= :id", { id: decoded.id })
-      .getOne();
+    // // 3) CHECK IF THE REFRESH TOKEN IN THE DATABASE FOR THIS USER
+    // const userRepository = AppDataSource.getRepository(User);
+    // const user = await userRepository
+    //   .createQueryBuilder("users")
+    //   .where("id= :id", { id: decoded.id })
+    //   .getOne();
 
-    if (!user || user.refreshToken !== refreshToken) {
-      return next(new AppError("Invalid refresh token", 403));
-    }
+    // if (!user || user.refreshToken !== refreshToken) {
+    //   return next(new AppError("Invalid refresh token", 403));
+    // }
 
-    // 4) CREATE NEW ACCESS AND REFRESH TOKEN FOR THE USER
-    createSendAccessRefresh(user, 200, res);
+    // // 4) CREATE NEW ACCESS AND REFRESH TOKEN FOR THE USER
+    // createSendAccessRefresh(user, 200, res);
+    next();
   }
 );
