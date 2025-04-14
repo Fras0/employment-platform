@@ -129,28 +129,28 @@ export const login = asyncHandler(
 export const logout = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // 1) GET THE REFRESH TOKEN FROM COOKIES
-    // const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies.refreshToken;
 
-    // if (!refreshToken) {
-    //   return next(new AppError("There is no refresh token found", 404));
-    // }
+    if (!refreshToken) {
+      return next(new AppError("There is no refresh token found", 404));
+    }
 
-    // // 2) DECODE THE REFRESH TOKEN AND GET THE USER ID FOR IT
-    // let decoded: any;
-    // try {
-    //   decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH!);
-    // } catch (err) {
-    //   return next(new AppError("Invalid refresh token", 400));
-    // }
+    // 2) DECODE THE REFRESH TOKEN AND GET THE USER ID FOR IT
+    let decoded: any;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH!);
+    } catch (err) {
+      return next(new AppError("Invalid refresh token", 400));
+    }
 
-    // // 3) FIND THE USER BY ID
-    // const user = await User.findOne({ where: { id: decoded.id } });
+    // 3) FIND THE USER BY ID
+    const user = await User.findOne({ where: { id: decoded.id } });
 
-    // // 4) REMOVE REFRESH TOKEN FROM DATABASE
-    // if (user) {
-    //   user.refreshToken = null;
-    //   await user.save();
-    // }
+    // 4) REMOVE REFRESH TOKEN FROM DATABASE
+    if (user) {
+      user.refreshToken = null;
+      await user.save();
+    }
 
     // 5) REMOVE THE REFRESH TOKEN FROM COOKIES
     res.clearCookie("refreshToken");
@@ -162,39 +162,38 @@ export const logout = asyncHandler(
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // 1) CHECK THE REQUEST COOKIES FOR REFRESH TOKEN
-    // const refreshToken: string | undefined = req.cookies.refreshToken;
-    // if (!refreshToken) {
-    //   return next(new AppError("Refresh token not found", 401));
-    // }
+    const refreshToken: string | undefined = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return next(new AppError("Refresh token not found", 401));
+    }
 
-    // // 2) CHECK IF THE REFRESH TOKEN IS VALID
-    // let decoded: { id: string } | string;
-    // try {
-    //   decoded = jwt.verify(
-    //     refreshToken,
-    //     process.env.JWT_SECRET_REFRESH as string
-    //   );
-    // } catch (error) {
-    //   return next(new AppError("Invalid refresh token", 403));
-    // }
+    // 2) CHECK IF THE REFRESH TOKEN IS VALID
+    let decoded: { id: string } | string;
+    try {
+      decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_SECRET_REFRESH as string
+      );
+    } catch (error) {
+      return next(new AppError("Invalid refresh token", 403));
+    }
 
-    // if (!isDecodedValid(decoded)) {
-    //   return next(new AppError("Invalid refresh token", 403));
-    // }
+    if (!isDecodedValid(decoded)) {
+      return next(new AppError("Invalid refresh token", 403));
+    }
 
-    // // 3) CHECK IF THE REFRESH TOKEN IN THE DATABASE FOR THIS USER
-    // const userRepository = AppDataSource.getRepository(User);
-    // const user = await userRepository
-    //   .createQueryBuilder("users")
-    //   .where("id= :id", { id: decoded.id })
-    //   .getOne();
+    // 3) CHECK IF THE REFRESH TOKEN IN THE DATABASE FOR THIS USER
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository
+      .createQueryBuilder("users")
+      .where("id= :id", { id: decoded.id })
+      .getOne();
 
-    // if (!user || user.refreshToken !== refreshToken) {
-    //   return next(new AppError("Invalid refresh token", 403));
-    // }
+    if (!user || user.refreshToken !== refreshToken) {
+      return next(new AppError("Invalid refresh token", 403));
+    }
 
-    // // 4) CREATE NEW ACCESS AND REFRESH TOKEN FOR THE USER
-    // createSendAccessRefresh(user, 200, res);
-    next();
+    // 4) CREATE NEW ACCESS AND REFRESH TOKEN FOR THE USER
+    createSendAccessRefresh(user, 200, res);
   }
 );

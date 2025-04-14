@@ -6,8 +6,12 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const app = express();
 
+// const corsOptions = {
+//   origin: "https://kzmihj10kwi89z57wnxw.lite.vusercontent.net", // origin for my vercel app
+//   credentials: true,
+// };
 const corsOptions = {
-  origin: "https://kzmihj10kwi89z57wnxw.lite.vusercontent.net", // origin for my vercel app
+  origin: "http://localhost:3000", // origin for my vercel app
   credentials: true,
 };
 
