@@ -32,7 +32,8 @@ export const getUser = asyncHandler(
       return next(new AppError("User not found", 404));
     }
 
-    if (viewer) {
+    // make sure that the profile view doesn't count if the user view himself
+    if (viewer && viewerId !== Number(userId)) {
       const view = ProfileView.create({
         viewer,
         viewed: user,
@@ -43,6 +44,38 @@ export const getUser = asyncHandler(
     res.status(200).json({
       status: "success",
       data: user,
+    });
+  }
+);
+
+export const getProfileViews = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+
+    const views = await ProfileView.createQueryBuilder("profileView")
+      .leftJoin("profileView.viewer", "viewer")
+      .leftJoin("viewer.employee", "employee")
+      .leftJoin("viewer.employer", "employer")
+      .where("profileView.viewed = :userId", { userId })
+      .select([
+        "profileView.viewedAt",
+        "viewer.id",
+        "viewer.email",
+        "viewer.role",
+        "employee.name",
+        "employer.name",
+      ])
+      .orderBy("profileView.viewedAt", "DESC")
+      .getMany();
+
+    if (!views) {
+      return next(new AppError("no views found", 404));
+    }
+
+    res.status(200).json({
+      status: "success",
+      no: views.length,
+      data: views,
     });
   }
 );

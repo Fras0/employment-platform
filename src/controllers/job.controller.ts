@@ -123,6 +123,23 @@ export const getJob = asyncHandler(
   }
 );
 
+export const getEmployerJobs = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const empId = req.employer?.id;
+
+    const jobs = await Job.createQueryBuilder("job")
+      .leftJoin("job.employer", "employer")
+      .where("employer.id = :empId", { empId })
+      .getMany();
+
+    res.status(200).json({
+      status: "success",
+      no: jobs.length,
+      data: jobs,
+    });
+  }
+);
+
 export const recommendJobs = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const employeeId = req.employee?.id;

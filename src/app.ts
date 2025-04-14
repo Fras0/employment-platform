@@ -14,7 +14,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 import userRoutes from "./routes/user.routes";
+import authRoutes from "./routes/aut.routes";
 import jobRoutes from "./routes/job.routes";
+import applicationRoutes from "./routes/application.routes";
 
 import AppError from "./utils/app-error";
 import errorHandlerMiddleware from "./utils/error-handler";
@@ -29,8 +31,10 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser());
 
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes);
 
 app.all("*splat", (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

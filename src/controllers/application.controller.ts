@@ -7,6 +7,7 @@ import { AppDataSource } from "../config/data-source";
 import { Job } from "../models/job";
 import { logger } from "../config/logger";
 import { Application } from "../models/application";
+import { Employee } from "../models/employee";
 
 export const addApplication = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -89,16 +90,44 @@ export const getJobApplications = asyncHandler(
   }
 );
 
-export const respondToApplication = asyncHandler(
+export const getEmployeeApplications = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const empId = req.employee?.id;
+    const appRepo = AppDataSource.getRepository(Application);
+
+    if (!empId) {
+      return next(new AppError(`No employee provided`, 400));
+    }
+
+    const employee = await Employee.findOne({ where: { id: empId } });
+
+    if (!employee) {
+      return next(new AppError(`This employee is not available`, 400));
+    }
+
+    const applications = await appRepo
+      .createQueryBuilder("applications")
+      .leftJoinAndSelect("applications.employee", "employee")
+      .leftJoinAndSelect("applications.job", "job")
+      .where("applications.employeeId = :empId", { empId })
+      .getMany();
+
+    if (!applications) {
+      return next(new AppError("No applications found for this user", 404));
+    }
+
+    res.status(200).json({
+      status: "success",
+      no: applications.length,
+      data: applications,
+    });
+  }
+);
+
+export const acceptApplication = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const applicationId = Number(req.params.applicationId);
-    const { status } = req.body;
-
-    if (status !== "accepted" && status !== "rejected") {
-      return next(
-        new AppError(`Provide valid status (rejected/accepted)`, 400)
-      );
-    }
+    const employerId = req.employer?.id;
 
     const application = await Application.findOne({
       where: { id: applicationId },
@@ -118,11 +147,48 @@ export const respondToApplication = asyncHandler(
       return next(new AppError(`This job is not available`, 400));
     }
 
-    if (job.employer.id !== req.employer?.id) {
-      return next(new AppError(`This job is not yours`, 400));
+    if (job.employer.id !== employerId) {
+      return next(new AppError(`This job is not yours`, 403));
     }
 
-    application.status = status;
+    application.status = "accepted";
+
+    await application.save();
+
+    res.status(200).json({
+      status: "success",
+      data: application,
+    });
+  }
+);
+export const rejectApplication = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const applicationId = Number(req.params.applicationId);
+    const employerId = req.employer?.id;
+
+    const application = await Application.findOne({
+      where: { id: applicationId },
+      relations: ["job"],
+    });
+
+    if (!application) {
+      return next(new AppError(`No application with that id`, 404));
+    }
+
+    const job = await Job.findOne({
+      where: { id: application?.job.id },
+      relations: ["employer"],
+    });
+
+    if (!job) {
+      return next(new AppError(`This job is not available`, 400));
+    }
+
+    if (job.employer.id !== employerId) {
+      return next(new AppError(`This job is not yours`, 403));
+    }
+
+    application.status = "rejected";
 
     await application.save();
 
