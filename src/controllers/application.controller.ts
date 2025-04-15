@@ -8,6 +8,7 @@ import { Job } from "../models/job";
 import { logger } from "../config/logger";
 import { Application } from "../models/application";
 import { Employee } from "../models/employee";
+import { Employer } from "../models/employer";
 
 export const addApplication = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -110,6 +111,39 @@ export const getEmployeeApplications = asyncHandler(
       .leftJoinAndSelect("applications.employee", "employee")
       .leftJoinAndSelect("applications.job", "job")
       .where("applications.employeeId = :empId", { empId })
+      .getMany();
+
+    if (!applications) {
+      return next(new AppError("No applications found for this user", 404));
+    }
+
+    res.status(200).json({
+      status: "success",
+      no: applications.length,
+      data: applications,
+    });
+  }
+);
+export const getEmployerApplications = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const empId = req.employer?.id;
+    const appRepo = AppDataSource.getRepository(Application);
+
+    if (!empId) {
+      return next(new AppError(`No employee provided`, 400));
+    }
+
+    const employer = await Employer.findOne({ where: { id: empId } });
+
+    if (!employer) {
+      return next(new AppError(`This employee is not available`, 400));
+    }
+
+    const applications = await appRepo
+      .createQueryBuilder("applications")
+      .leftJoinAndSelect("applications.job", "job")
+      .leftJoinAndSelect("job.employer", "employer")
+      .where("job.employerId = :empId", { empId })
       .getMany();
 
     if (!applications) {

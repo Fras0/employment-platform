@@ -5,6 +5,7 @@ import {
   acceptApplication,
   addApplication,
   getEmployeeApplications,
+  getEmployerApplications,
   getJobApplications,
   rejectApplication,
 } from "../controllers/application.controller";
@@ -19,6 +20,11 @@ router.route("/apply/:jobId").post(restrictTo(Role.EMPLOYEE), addApplication);
 router
   .route("/employee")
   .get(restrictTo(Role.EMPLOYEE), getEmployeeApplications);
+
+router
+  .route("/employer")
+  .get(restrictTo(Role.EMPLOYER), getEmployerApplications);
+
 router.route("/job/:jobId").get(getJobApplications);
 
 router
