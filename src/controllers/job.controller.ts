@@ -26,6 +26,7 @@ export const addJob = asyncHandler(
       !Array.isArray(languageNames) ||
       languageNames.length === 0
     ) {
+      logger.info(`no languages`);
       return next(new AppError(`Please specify job required languages`, 400));
     }
     const languages = await Language.find({
@@ -141,15 +142,24 @@ export const getEmployerJobs = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const empId = req.employer?.id;
 
+    // const jobs = await Job.createQueryBuilder("job")
+    //   .leftJoin("job.employer", "employer")
+    //   .where("employer.id = :empId", { empId })
+    //   .getMany();
+
     const jobs = await Job.createQueryBuilder("job")
       .leftJoin("job.employer", "employer")
+      .leftJoin("job.applications", "application") // join applications
       .where("employer.id = :empId", { empId })
-      .getMany();
+      .addSelect("COUNT(application.id)", "applicantCount") // select count
+      .groupBy("job.id")
+      .addGroupBy("employer.id")
+      .getRawAndEntities();
 
     res.status(200).json({
       status: "success",
-      no: jobs.length,
-      data: jobs,
+      data: jobs.entities,
+      raw: jobs.raw,
     });
   }
 );
