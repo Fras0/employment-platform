@@ -80,6 +80,7 @@ export const getJobApplications = asyncHandler(
       .createQueryBuilder("applications")
       .leftJoinAndSelect("applications.job", "job")
       .leftJoinAndSelect("applications.employee", "employee")
+      .leftJoinAndSelect("employee.user", "user")
       .where("applications.jobId = :jobId", { jobId })
       .getMany();
 
@@ -227,11 +228,11 @@ export const acceptApplication = asyncHandler(
 
     application.status = "accepted";
 
-    await sendEmail(
-      "whiteonion00@gmail.com", //replace this with donor.email
-      "accepted application",
-      `<h1>Hello!</h1><p>You are good come work with us</p>`
-    );
+    // await sendEmail(
+    //   "whiteonion00@gmail.com", //replace this with user.email
+    //   "accepted application",
+    //   `<h1>Hello!</h1><p>You are good come work with us</p>`
+    // );
 
     await application.save();
 
@@ -270,11 +271,11 @@ export const rejectApplication = asyncHandler(
 
     application.status = "rejected";
 
-    await sendEmail(
-      "whiteonion00@gmail.com", //replace this with donor.email
-      "YOU ARE REJECTED!",
-      `<h1>Hello!</h1><p>we regret THAT YOUR ARE BAD AND DON'T DESERVE TO WORK WITH US!!!!!!!</p>`
-    );
+    // await sendEmail(
+    //   "whiteonion00@gmail.com", //replace this with user.email
+    //   "YOU ARE REJECTED!",
+    //   `<h1>Hello!</h1><p>we regret THAT YOUR ARE BAD AND DON'T DESERVE TO WORK WITH US!!!!!!!</p>`
+    // );
 
     await application.save();
 

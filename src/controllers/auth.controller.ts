@@ -114,6 +114,8 @@ export const login = asyncHandler(
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo
       .createQueryBuilder("users")
+      .leftJoinAndSelect("users.employee", "employee")
+      .leftJoinAndSelect("users.employer", "employer")
       .where("email= :email", { email })
       .getOne();
     console.log(user);
