@@ -10,6 +10,8 @@ import { Application } from "../models/application";
 import { Employee } from "../models/employee";
 import { Employer } from "../models/employer";
 
+import { sendEmail } from "../services/email.service";
+
 export const addApplication = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const jobId = Number(req.params.jobId);
@@ -225,6 +227,12 @@ export const acceptApplication = asyncHandler(
 
     application.status = "accepted";
 
+    await sendEmail(
+      "whiteonion00@gmail.com", //replace this with donor.email
+      "accepted application",
+      `<h1>Hello!</h1><p>You are good come work with us</p>`
+    );
+
     await application.save();
 
     res.status(200).json({
@@ -261,6 +269,12 @@ export const rejectApplication = asyncHandler(
     }
 
     application.status = "rejected";
+
+    await sendEmail(
+      "whiteonion00@gmail.com", //replace this with donor.email
+      "YOU ARE REJECTED!",
+      `<h1>Hello!</h1><p>we regret THAT YOUR ARE BAD AND DON'T DESERVE TO WORK WITH US!!!!!!!</p>`
+    );
 
     await application.save();
 
