@@ -33,7 +33,9 @@ export const addApplication = asyncHandler(
     const applicant = await appRepo
       .createQueryBuilder("applications")
       .leftJoinAndSelect("applications.employee", "employee")
+      .leftJoinAndSelect("applications.job", "job")
       .where("employee.id = :empId", { empId: employee.id })
+      .andWhere("job.id = :jobId", { jobId: jobId })
       .getOne();
 
     if (applicant) {
@@ -91,6 +93,41 @@ export const getJobApplications = asyncHandler(
   }
 );
 
+export const haveIAppliedToThisJob = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const jobId = Number(req.params.jobId);
+    const empId = req.employee?.id;
+    const appRepo = AppDataSource.getRepository(Application);
+
+    if (!empId) {
+      return next(new AppError(`No employee provided`, 400));
+    }
+
+    const employee = await Employee.findOne({ where: { id: empId } });
+
+    if (!employee) {
+      return next(new AppError(`This employee is not available`, 400));
+    }
+
+    const applications = await appRepo
+      .createQueryBuilder("applications")
+      .leftJoin("applications.employee", "employee")
+      .leftJoinAndSelect("applications.job", "job")
+      .where("applications.employeeId = :empId", { empId })
+      .getMany();
+
+    if (!applications) {
+      return next(new AppError("No applications found for this user", 404));
+    }
+
+    const hasApplied = applications.some((app) => app.job?.id === jobId);
+
+    res.status(200).json({
+      status: "success",
+      hasApplied,
+    });
+  }
+);
 export const getEmployeeApplications = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const empId = req.employee?.id;
@@ -108,8 +145,9 @@ export const getEmployeeApplications = asyncHandler(
 
     const applications = await appRepo
       .createQueryBuilder("applications")
-      .leftJoinAndSelect("applications.employee", "employee")
+      .leftJoin("applications.employee", "employee")
       .leftJoinAndSelect("applications.job", "job")
+      .leftJoinAndSelect("job.employer", "employer")
       .where("applications.employeeId = :empId", { empId })
       .getMany();
 

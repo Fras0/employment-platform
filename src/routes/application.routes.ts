@@ -7,6 +7,7 @@ import {
   getEmployeeApplications,
   getEmployerApplications,
   getJobApplications,
+  haveIAppliedToThisJob,
   rejectApplication,
 } from "../controllers/application.controller";
 
@@ -17,6 +18,9 @@ import { restrictTo } from "../middleware/restrictTo";
 router.use(protect);
 
 router.route("/apply/:jobId").post(restrictTo(Role.EMPLOYEE), addApplication);
+router
+  .route("/check/:jobId")
+  .get(restrictTo(Role.EMPLOYEE), haveIAppliedToThisJob);
 router
   .route("/employee")
   .get(restrictTo(Role.EMPLOYEE), getEmployeeApplications);
