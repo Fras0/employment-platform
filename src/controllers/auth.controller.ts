@@ -118,7 +118,6 @@ export const login = asyncHandler(
       .leftJoinAndSelect("users.employer", "employer")
       .where("email= :email", { email })
       .getOne();
-    console.log(user);
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return next(new AppError(`invalid email or password`, 403));

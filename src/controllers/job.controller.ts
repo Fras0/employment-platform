@@ -9,6 +9,13 @@ import { logger } from "../config/logger";
 import { Language } from "../models/programming-languages";
 import { Employee } from "../models/employee";
 
+import stringSimilarity from "string-similarity";
+
+function getStringSimilarity(str1: string, str2: string): number {
+  return stringSimilarity.compareTwoStrings(str1, str2);
+}
+
+
 export const addJob = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { title, description, city, experienceLevel, languageNames } =
@@ -170,6 +177,7 @@ export const recommendJobs = asyncHandler(
     if (!employeeId) {
       return next(new AppError(`You are not employee`, 400));
     }
+
     const employee = await Employee.findOne({
       where: { id: employeeId },
       relations: ["languages"],
@@ -182,11 +190,6 @@ export const recommendJobs = asyncHandler(
     const languageNames = employee.languages.map((lang) =>
       lang.name.toLowerCase()
     );
-    const bioKeywords =
-      employee.bio
-        ?.toLowerCase()
-        .split(/\s+/)
-        .filter((word) => word.length > 3) ?? [];
 
     const allJobs = await Job.find({
       relations: ["languages", "employer"],
@@ -208,10 +211,17 @@ export const recommendJobs = asyncHandler(
       );
       score += commonLangs.length;
 
-      // Match bio keywords in title/description
-      const text = `${job.title} ${job.description}`.toLowerCase();
-      const bioMatches = bioKeywords.filter((word) => text.includes(word));
-      score += bioMatches.length * 0.5;
+      // Similarity between employee bio and job text
+      if (employee.bio) {
+        const text = `${job.title} ${job.description}`.toLowerCase();
+        const employeeBio = employee.bio.toLowerCase();
+
+        // Simple similarity function (Levenshtein or basic ratio)
+        const similarity = getStringSimilarity(employeeBio, text);
+
+        // Weight the similarity into the score
+        score += similarity * 5; // You can adjust the weight here
+      }
 
       return { job, score };
     });

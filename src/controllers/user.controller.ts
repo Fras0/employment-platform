@@ -93,7 +93,9 @@ export const getAllCandidates = asyncHandler(
 
     const query = AppDataSource.getRepository(Employee)
       .createQueryBuilder("employees")
-      .leftJoinAndSelect("employees.languages", "language");
+      .leftJoinAndSelect("employees.languages", "language")
+      .leftJoin("employees.user", "user")
+      .addSelect(["user.id", "user.email"]);
 
     if (experienceLevel) {
       query.andWhere("employees.experienceLevel = :experienceLevel", {
@@ -108,23 +110,16 @@ export const getAllCandidates = asyncHandler(
     }
 
     if (bio) {
-      const terms = (bio as string)
-        .split(" ")
-        .map((term) => term.trim())
-        .filter((term) => term.length > 0);
+       // 1. Add similarity as a hidden field (alias it)
+       query.addSelect("similarity(employees.bio, :bio)", "bio_similarity");
 
-      if (terms.length > 0) {
-        const bioConditions = terms
-          .map((_, index) => `employees.bio ILIKE :bioTerm${index}`)
-          .join(" OR ");
-
-        const bioParams = terms.reduce((acc, term, index) => {
-          acc[`bioTerm${index}`] = `%${term}%`;
-          return acc;
-        }, {} as Record<string, string>);
-
-        query.andWhere(`(${bioConditions})`, bioParams);
-      }
+       // 2. Filter using the alias
+       query.andWhere("similarity(employees.bio, :bio) > 0.2");
+ 
+       // 3. Order by the alias
+       query.addOrderBy("bio_similarity", "DESC");
+ 
+       query.setParameter("bio", bio);
     }
 
     if (languageNames) {
@@ -133,6 +128,7 @@ export const getAllCandidates = asyncHandler(
         : (languageNames as string).split(",");
       query.andWhere("language.name IN (:...names)", { names });
     }
+
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
 
