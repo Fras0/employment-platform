@@ -12,6 +12,40 @@ import { Employer } from "../models/employer";
 
 import { sendEmail } from "../services/email.service";
 
+import { UploadedFile } from "express-fileupload"; // You might need to install this type if using file upload libraries
+import path from "path";
+import fs from "fs"
+
+// Download PDF handler
+export const downloadPDF = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const applicationId = Number(req.params.applicationId); // Assuming book is populated earlier (e.g., middleware or in the request object)
+
+
+  const application = await Application.findOne({
+    where: { id: applicationId },
+  });
+
+  if (!application || !application.pdfUrl) {
+    return next(new AppError("CV not found or PDF URL missing", 404));
+  }
+
+  const pdfPath = path.join(__dirname, "..", application.pdfUrl);
+
+  // Check if the PDF exists on the server
+  if (!fs.existsSync(pdfPath)) {
+    return next(new AppError("PDF file not found on server", 404));
+  }
+
+  // Set response headers and send the PDF
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename=${path.basename(pdfPath)}`);
+  res.sendFile(pdfPath);
+});
+
+
+
+
+
 export const addApplication = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const jobId = Number(req.params.jobId);
@@ -46,9 +80,19 @@ export const addApplication = asyncHandler(
 
     const repository = AppDataSource.getRepository(Application);
 
+    if (!req.file) {
+      return next(new AppError("No file uploaded", 400));
+    }
+
+    const file = req.file;
+
+    const pdfUrl = `/uploads/${file.filename}`;
+
+
     const newApplication = repository.create({
       employee,
       job,
+      pdfUrl
     });
     await AppDataSource.manager.save(newApplication);
 
@@ -228,11 +272,11 @@ export const acceptApplication = asyncHandler(
 
     application.status = "accepted";
 
-    // await sendEmail(
-    //   "whiteonion00@gmail.com", //replace this with user.email
-    //   "accepted application",
-    //   `<h1>Hello!</h1><p>You are good come work with us</p>`
-    // );
+    await sendEmail(
+      "whiteonion00@gmail.com", //replace this with user.email
+      "accepted application",
+      `<h1>Hello!</h1><p>You are good come work with us</p>`
+    );
 
     await application.save();
 
@@ -271,11 +315,11 @@ export const rejectApplication = asyncHandler(
 
     application.status = "rejected";
 
-    // await sendEmail(
-    //   "whiteonion00@gmail.com", //replace this with user.email
-    //   "YOU ARE REJECTED!",
-    //   `<h1>Hello!</h1><p>we regret THAT YOUR ARE BAD AND DON'T DESERVE TO WORK WITH US!!!!!!!</p>`
-    // );
+    await sendEmail(
+      "whiteonion00@gmail.com", //replace this with user.email
+      "YOU ARE REJECTED!",
+      `<h1>Hello!</h1><p>we regret THAT YOUR ARE BAD AND DON'T DESERVE TO WORK WITH US!!!!!!!</p>`
+    );
 
     await application.save();
 

@@ -50,7 +50,6 @@ export const protect = asyncHandler(
     let currentEmployee;
     let currentEmployer;
     if (currentUser.role === "employee") {
-      console.log(currentUser);
       const employeeRepo = AppDataSource.getRepository(Employee);
       currentEmployee = await employeeRepo
         .createQueryBuilder("employee")

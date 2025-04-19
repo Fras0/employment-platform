@@ -27,6 +27,9 @@ export class Application extends BaseEntity {
   })
   status: "pending" | "accepted" | "rejected";
 
+  @Column({ nullable: true })
+  pdfUrl: string
+
   @ManyToOne(() => Employee, (employee) => employee.applications)
   @JoinColumn({ name: "employeeId" })
   employee: Employee;
